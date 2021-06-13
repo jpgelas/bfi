@@ -1,8 +1,15 @@
+/******************************************/
+/*                                        */
+/* Brainfuck interpreter                  */
+/* Jean-Patrick Gelas <jpgelas@gmail.com> */
+/* June 2021 - Ver. 0.1a                  */
+/*                                        */
+/******************************************/
 use std::env;
 
 const AUTHOR:&str = "Jp";
 const VERSION:&str = "0.1a";
-const MEMORY_SIZE:usize = 1000;
+const MEMORY_SIZE:usize = 500;
 
 fn main() {
     let mut memory: [u8; MEMORY_SIZE] = [0; MEMORY_SIZE]; // Ruban memoire
@@ -30,26 +37,46 @@ fn run_interpreter(source : String, memory: &mut [u8; MEMORY_SIZE]) {
     let src = source.as_bytes();//.to_owned();
     while ptr_i < src.len() {
         let c = src[ptr_i] as char;
-        //println!("{:?} --- {} ptr_i={}, ptr_m={}", memory, c, ptr_i, ptr_m);
+        // println!("{:?} --- {} ptr_i={}, ptr_m={}", memory, c, ptr_i, ptr_m);
         match c {
             '>' => ptr_m += 1,
             '<' => ptr_m -= 1,
-            '+' => memory[ptr_m] += 1,
+            '+' => if memory[ptr_m] < 255 { memory[ptr_m] += 1 },
             '-' => if memory[ptr_m] > 0 { memory[ptr_m] -= 1 },
             '.' => print!("{}", memory[ptr_m] as char),
             ',' => todo!(), 
-            '[' => stack.push(ptr_i),
-            ']' => {
+            '[' => {
                     if memory[ptr_m] == 0 {
-                        stack.pop().unwrap();
-                    } else {
-                        ptr_i = *stack.peek().unwrap();
+                        // Go to the closing square bracket ']'
+                        let mut found_closing_sqbracket = false;
+                        let mut open_sqbracket_counter = 0;
+                        while !found_closing_sqbracket {
+                            ptr_i += 1;
+                            let i = src[ptr_i] as char;
+                            if i == '[' {
+                                open_sqbracket_counter +=1;
+                            } else {
+                                if i == ']' {
+                                    if open_sqbracket_counter != 0 {
+                                        open_sqbracket_counter -=1;
+                                    } else {
+                                        found_closing_sqbracket = true;
+                                    }
+                                }
+                            }
+                        }
+                    } else {                    
+                        stack.push(ptr_i);
                     }
+                },
+            ']' => {
+                        ptr_i = stack.pop().unwrap() - 1;
                 },
              _  => (),
         }
         ptr_i += 1;
     }
+    // println!("{:?} === _ ptr_i={}, ptr_m={}", memory, ptr_i, ptr_m);
 }
 
 // Remove spaces, tabs, carriage return and commented lines starting with a '#'
@@ -76,7 +103,7 @@ impl<T> Stack<T> {
   fn new() -> Self {
     Stack { stack: Vec::new() }
   }
-#[allow(dead_code)]
+  #[allow(dead_code)]
   fn length(&self) -> usize {
     self.stack.len()
   }
@@ -88,10 +115,11 @@ impl<T> Stack<T> {
   fn push(&mut self, item: T) {
     self.stack.push(item)
   }
-#[allow(dead_code)]
+  #[allow(dead_code)]
   fn is_empty(&self) -> bool {
     self.stack.is_empty()
   }
+  #[allow(dead_code)]
   fn peek(&self) -> Option<&T> {
     self.stack.last()
   }
